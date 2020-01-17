@@ -1,0 +1,64 @@
+Géométrie Discrète - TP séance 6                CC-BY Edouard.Thiel@univ-amu.fr
+================================                                     17/10/2019
+
+Ce document est téléchargeable à l'adresse :
+    http://pageperso.lif.univ-mrs.fr/~edouard.thiel/ens/geodis/gd6-tp.txt
+Ou encore
+    http://j.mp/gd-et  puis  gd5-tp.txt
+
+À la fin de la séance, envoyer-moi vos fichiers par mail à
+    Edouard.Thiel@univ-amu.fr
+    Sujet : [GIG3] TP6
+    corps : noms prénoms du binôme
+    en attaché : les fichiers .cpp avec vos noms dans l'entête et la date
+
+
+1. Transformation de distance Euclidienne
+   ======================================
+
+1.1 SEDT de Saito et Toriwaki
+    -------------------------
+
+Écrivez la fonction
+
+    calculer_sedt_saito_toriwaki (cv::Mat img_niv)
+
+qui effectue la transformation de distance euclidienne au carré de Saito et
+Toriwaki sur l'image img_niv. On considère que l'extérieur de l'image est à 0.
+
+Appelez cette fonction dans effectuer_transformations pour le cas A_TRANS5 lié 
+à la touche '5'.
+
+
+2.2 Courbes de niveaux
+    ------------------
+
+Écrivez la fonction 
+
+    void calculer_sedt_courbes_niveau (cv::Mat img_niv)
+
+qui calcule les courbes de niveau sur l'image SEDT, c'est-à-dire qui pour chaque
+pixel remplace la valeur non nulle par sa racine carrée tronquée.
+
+Dans effectuer_transformations, pour le cas A_TRANS6 lié à la touche '6',
+appelez successivement la fonction calculer_sedt_saito_toriwaki puis
+calculer_sedt_courbes_niveau.
+
+Comparez les courbes de niveaux obtenues avec celles de d4 et d8. Vérifiez
+aussi en inversant l'image (touche 'i') que les courbes de niveaux aux bords
+de l'image lui sont parallèles.
+
+
+2.3 Maximums locaux
+    ---------------
+
+Le calcul exact des maximums locaux est difficile à implémenter sur une SEDT,
+mais on peut obtenir une bonne approximation en détectant les maximums locaux
+dans le voisinage V8 sur les courbes de niveaux.
+
+Dans effectuer_transformations, pour le cas A_TRANS7 lié à la touche '7',
+appelez successivement la fonction calculer_sedt_saito_toriwaki, puis
+calculer_sedt_courbes_niveau, puis detecter_maximums_locaux pour le demi-masque
+M_D8.
+
+

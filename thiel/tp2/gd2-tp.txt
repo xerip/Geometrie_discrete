@@ -1,0 +1,164 @@
+Géométrie Discrète - TP séance 2                CC-BY Edouard.Thiel@univ-amu.fr
+================================                                     23/09/2018
+
+Ce document est téléchargeable à l'adresse :
+    http://pageperso.lif.univ-mrs.fr/~edouard.thiel/ens/geodis/gd2-tp.txt
+Ou encore
+    http://j.mp/gd-et  puis  gd2-tp.txt
+
+À la fin de la séance, envoyer-moi vos fichiers par mail à
+    Edouard.Thiel@univ-amu.fr
+    Sujet : [GIG3] TP2
+    corps : noms prénoms du binôme
+    en attaché : les fichiers .cpp
+
+
+0. Amélioration du programme
+   =========================
+
+Dans votre programme actuel du TP1, dans la fonction onKeyPressEvent, remplacez
+les blocs
+
+        // Rajoutez ici des touches pour les transformations
+        case '1' :
+            std::cout << "Transformation 1" << std::endl;
+            my->affi = My::A_TRANS1;
+            my->set_recalc(My::R_TRANSFOS);
+            break;
+        case '2' :
+            std::cout << "Transformation 2" << std::endl;
+            my->affi = My::A_TRANS2;
+            my->set_recalc(My::R_TRANSFOS);
+            break;
+        case '3' :
+            std::cout << "Transformation 3" << std::endl;
+            my->affi = My::A_TRANS3;
+            my->set_recalc(My::R_TRANSFOS);
+            break;
+
+par
+
+        // Rajoutez ici des touches pour les transformations.
+        // Dans my->set_recalc, passez :
+        //   My::R_SEUIL pour faire le calcul à partir de l'image originale seuillée
+        //   My::R_TRANSFOS pour faire le calcul à partir de l'image actuelle
+        case '1' :
+            std::cout << "Transformation 1" << std::endl;
+            my->affi = My::A_TRANS1;
+            my->set_recalc(My::R_SEUIL);
+            break;
+        case '2' :
+            std::cout << "Transformation 2" << std::endl;
+            my->affi = My::A_TRANS2;
+            my->set_recalc(My::R_SEUIL);
+            break;
+        case '3' :
+            std::cout << "Transformation 3" << std::endl;
+            my->affi = My::A_TRANS3;
+            my->set_recalc(My::R_SEUIL);
+            break;
+
+
+1. Suivi de contour
+   ================
+
+Reprenez votre programme du TP1.
+Pensez à le renommer (tp2-<vos-noms>.cpp) et à inscrire aussi vos noms et la
+date de la version à la fin de l'entête.
+
+Rajoutez une fonction effectuer_suivi_contours_c8 associée à la touche '4'.
+
+Le rôle de cette fonction est de détecter et marquer dans img_niv les contours
+en 8-connexité avec l'algorithme de suivi de contour vu en cours, et rappelé
+ci-dessous.
+
+La fonction affichera également dans le terminal la chaîne de Freeman pour
+chaque contour (sans la mémoriser).
+
+
+Rappel de l'algorithme vu en cours pour C8 :
+------------------------------------------
+
+    I[x,y] =   0 : fond
+             255 : forme, non encore traité
+              != : forme, contour détecté, numéro du contour
+
+ - effectuer_suivi_contours_c8 (I) :
+        num_contour = 1
+        pour chaque ligne y : 0 .. nlig-1
+        pour chaque colonne x : 0 .. ncol-1
+            // recherche du premier point du prochain contour
+            // = un point à 255 avec un 4-voisin à 0 ou situé au bord
+            // la direction de départ dir sera en direction du 0 ou du bord
+            si I[x,y] == 255 :
+                dir = -1    // pas trouvé
+                si       x == ncol-1 ou I[x+1,y] == 0 : dir = 0
+                sinon si y == nlig-1 ou I[x,y+1] == 0 : dir = 2
+                sinon si x == 0      ou I[x-1,y] == 0 : dir = 4
+                sinon si y == 0      ou I[x,y-1] == 0 : dir = 6
+                si dir >= 0 :  // trouvé
+                   suivre_un_contour_c8 (I, x, y, dir, num_contour++)
+                   si num_contour == 255 : num_contour++  // saute 255
+
+ - suivre_un_contour_c8 (I, xA, yA, dirA, num_contour) :
+
+        // 1) recherche de la direction d'arrivée sur xA,yA :
+        //    on tourne autour de xA,yA dans le sens croissant à partir de dirA
+        pour i = 0 .. 7 :
+            d = (dirA+i) % 8
+            si N8(A,d) est dans l'image et > 0 :
+                dir_finale = (d+4)%8 ; stop
+
+    Exemple :
+        O -->x                 . A . . . .   dirA = 0
+        |          5 6 7       X F . X X X   d = 0, 1, 2 ok
+        v          4 P 0       X X X X X X   -> dir_finale = (2+4)%8 = 6
+        y          3 2 1       . X X X X .  
+
+        Rq si on n'en trouve aucun -> pt isolé, détecté étape suivante
+                                      dans laquelle le point sera marqué
+
+        // 2) suivi et marquage du contour
+        x = xA, y = yA, dir = dir_finale
+        faire
+            I[x,y] = num_contour
+            // direction de départ pour chercher le point suivant
+            dir = (dir+4-1) % 8
+
+            // on tourne autour de x,y dans le sens décroissant à partir de dir
+            pour i = 0 .. 7 :
+                d = (dir+8-i) % 8
+                Q = N8((x,y),d)
+                si Q est dans l'image et > 0 :
+                    x,y = Q ; dir = d
+                    // emplacement pour mémoriser d dans la chaîne de Freeman
+                    stop
+            si i == 8 : retour // aucun point trouvé -> point isolé
+
+        tant que non (x == xA et y == yA et dir == dir_finale)
+
+
+    Exemple, suite : on avait dir = dir_finale = 6
+
+        . A . . . .   
+        B F . X X X   dir = (6+4-1)%8 = 1
+        X X X X X X   d = 1, 0, 7, 6, 5, 4, 3 ok -> s = [3]
+        . X X X X .   -> B
+
+        . A . . . .   
+        B F . X X X   dir = (3+4-1)%8 = 6
+        C X X X X X   d = 6, 5, 4, 3, 2 ok -> s = [3,2]
+        . X X X X .   -> C
+
+        . A . . . .   
+        B F . X X X   dir = (2+4-1)%8 = 5
+        C X X X X X   d = 5, 4, 3, 2, 1 ok -> s = [3,2,1]
+        . D X X X .   -> D
+
+    à la fin :          Freeman :
+        . A . . . .     . 3 . . . .     
+        B M . K J I     2 6 . 3 4 4       s = [3,2,1,0,0,0,7,6,4,4,3,5,6]
+        C X L X X H     1 X 5 X X 6     
+        . D E F G .     . 0 0 0 7 .     
+
+

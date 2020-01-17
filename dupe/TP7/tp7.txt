@@ -1,0 +1,15 @@
+
+1) construire forme avec gimp
+forme -> 0 (noir) sur fond -> 255 (blanc)
+
+2) faire opérations érosion et dilatation
+(version ensembliste)
+
+3) Faire opérations d'ouverture fermeture
+
+4) Faire les gradients (inférieur, extérieur, morphologique, et le laplacien morphologique)
+
+REMARQUES
+    -> bien centrer l'élément structurant B
+    -> Pour un pixel donné, il faut centrer par rapport à B et faire 
+        un test d'intersection ou d'inclusion (avec la forme).

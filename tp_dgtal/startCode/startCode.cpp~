@@ -1,0 +1,340 @@
+/**
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ **/
+
+/**
+ * @file io/viewers/viewer3D-9-3Dimages.cpp
+ * @ingroup Examples
+ * @author Bertrand Kerautret (\c kerautre@loria.fr )
+ * LORIA (CNRS, UMR 7503), University of Nancy, France
+ *
+ * @date 2013/05/19
+ *
+ * An example file named viewer3D-8-2Dimages.
+ *
+ * This file is part of the DGtal library.
+ */
+
+
+
+/**
+ * \image html  viewer3D-9.png  "Illustration of the 3D image visualization."
+ *  \example io/viewers/viewer3D-9-3Dimages.cpp
+ *
+ */
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+#include <iostream>
+#include "DGtal/base/Common.h"
+#include "DGtal/io/readers/GenericReader.h"
+#include "DGtal/images/ImageHelper.h"
+#include "DGtal/images/Image.h"
+#include "ConfigExamples.h"
+
+#include "DGtal/helpers/StdDefs.h"
+
+#include "DGtal/io/viewers/Viewer3D.h"
+#include "DGtal/io/DrawWithDisplay3DModifier.h"
+#include "DGtal/io/colormaps/HueShadeColorMap.h"
+#include "DGtal/io/Color.h"
+
+#include "DGtal/kernel/SpaceND.h"
+#include "DGtal/kernel/domains/HyperRectDomain.h"
+#include "DGtal/images/ImageSelector.h"
+
+#include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
+#include "DGtal/images/SimpleThresholdForegroundPredicate.h"
+#include "DGtal/helpers/StdDefs.h"
+
+///////////////////////////////////////////////////////////////////////////////
+
+using namespace std;
+using namespace DGtal;
+
+
+
+struct hueFct{
+ inline
+ unsigned int operator() (unsigned int aVal) const
+  {
+    HueShadeColorMap<unsigned int>  hueShade(0,255);
+    Color col = hueShade((unsigned int)aVal);
+    return  (((unsigned int) col.red()) <<  16)| (((unsigned int) col.green()) << 8)|((unsigned int) col.blue());
+  }
+};
+
+// Définition du type de viewer à utiliser. 
+typedef Viewer3D<> ViewerType ;
+// Définition du type de conteneur à utiliser pour l'image du premier exercice. 
+typedef ImageContainerBySTLVector<Z3i::Domain,  float> Image3D;
+// Définition du type de conteneur à utiliser pour l'image de la transformée en distance. 
+typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+
+// Parcours et traitement d'un volume. 
+void imageSandbox(ViewerType& viewer);
+// Tranformée en distance.
+void transformeeEnDistance(ViewerType& viewer);
+
+// Méthode pour générer des voxels de manière aléatoire. 
+template<typename Image>
+void randomSeeds(Image &image, const unsigned int nb, const int value);
+
+///////////////////////////////////////////////////////////////////////////////
+
+int main( int argc, char** argv )
+{
+  QApplication application(argc,argv);
+  ViewerType viewer;
+
+  // Appel aux méthodes des exercices. 
+  imageSandbox(viewer);
+  //transformeeEnDistance(viewer);
+  
+  return application.exec();
+}
+
+
+/**
+ * Cette fonction vous permettra de commencer à pratiquer avec le chargement d'objets 
+ * volumiques. Les parcourir, retrouver les valeurs affectées à chaque voxel et les 
+ * les modifier. 
+ * \param Visualisateur à utiliser.
+ *
+ */
+void imageSandbox(ViewerType& viewer)
+{
+  // Lance le visusalisateur. 
+  viewer.show();
+  
+  //Chargement d'une image dans une structure de données ImageContainerBySTLVector.
+  std::string inputFilename = examplesPath + "/Al.100.vol";
+  Image3D imageVol = GenericReader<Image3D>::import(inputFilename);
+
+  // Obtention du domaine (taille) de l'image chargée. 
+  Z3i::Domain initialDomain = imageVol.domain();
+  // Obtient les bornes supérieures et inférieures du domaine. 
+  Z3i::Point init = initialDomain.lowerBound();
+  Z3i::Point final = initialDomain.upperBound();
+  //  std::cout << init[0] << " " << init[1] << " " << " " << init[2] << std::endl;
+  //  std::cout << final[0] << " " << final[1] << " " << " " << final[2] << std::endl;
+
+  // Point du centre de la forme. 
+  Z3i::Point center((final[0] - init[0])/2,(final[1] - init[1])/2,(final[2] - init[2])/2);
+
+  // Définition des dimensions d'un sous-domaine. 
+  Z3i::Point ptLow (100, 100, 20);
+  Z3i::Point ptUpp (200, 200, 40);
+  Z3i::Domain subDomain(ptLow, ptUpp);
+
+  // Définition des dimensions d'un sous-domaine. 
+  Z3i::Point ptLow2 (220, 50, 10);
+  Z3i::Point ptUpp2 (260, 100, 20);
+  Z3i::Domain subDomain2(ptLow2, ptUpp2);
+
+  // Définition du gradient des couleurs. 
+  GradientColorMap<long> gradient( 0,30);
+  gradient.addColor(Color::Red);
+  gradient.addColor(Color::Yellow);
+  gradient.addColor(Color::Green);
+  gradient.addColor(Color::Cyan);
+  gradient.addColor(Color::Blue);
+  gradient.addColor(Color::Magenta);
+  gradient.addColor(Color::Red);
+
+  float min = 0.0;
+  float max = 0.0;
+  Image3D coloredImage = imageVol;
+  
+  for(Z3i::Domain::ConstIterator it= coloredImage.domain().begin(),
+	itend = coloredImage.domain().end(); it != itend; ++it)
+  {
+    Z3i::Point currentPoint = *it;
+    float distance = pow((center[0] - currentPoint[0]),2) + pow((center[1] - currentPoint[1]),2)
+      + pow((center[2] - currentPoint[2]),2);
+    if (distance > max)
+      max = distance;
+    coloredImage.setValue(*it, distance);
+  }
+
+  for(Z3i::Domain::ConstIterator it= coloredImage.domain().begin(),
+	itend = coloredImage.domain().end(); it != itend; ++it)
+  {
+    Z3i::Point currentPoint = *it;
+    if (currentPoint[0] > 0 && imageVol(*it) > 0 )
+    {
+      float distance = coloredImage(*it);
+      float rangeValue = (distance-0)/(max-0) * (30-0) + 0;
+      Color c= gradient(rangeValue);
+      //std::cout << "Max: " << max << " " << distance << " " << rangeValue << std::endl;
+      viewer << CustomColors3D(Color((float)(c.red()),
+				     (float)(c.green()),
+				     (float)(c.blue(),205)),
+			       Color((float)(c.red()),
+				     (float)(c.green()),
+				     (float)(c.blue()),205));
+      viewer << *it;
+      
+    }	
+  }
+
+  viewer << SetMode3D(coloredImage.className(), "BoundingBox");
+  viewer << ViewerType::updateDisplay;
+}
+
+/**
+ * Fonction de la transformée en distance à partir de quelques points germes.
+ * La distance est calculée à partir de chaque point. Donc, la distance dans un 
+ * voxel est la distance minimale à tous les points germes. 
+ * \param le visualisateur à utiliser. 
+ *
+ */
+void transformeeEnDistance(ViewerType& viewer)
+{
+  // Affichage de la visualisation. 
+  viewer.show();
+  // Nombre du fichier à charger. 
+  std::string inputFilename = examplesPath + "/Al.100.vol";
+
+  // Création du type d'image. 
+  //Default image selector = STLVector
+  typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+
+  //Chargement du fichier image dans la structure. 
+  Image image = VolReader<Image>::importVol( inputFilename );
+  // Obtention du domaine (taille) de l'image. 
+  Z3i::Domain domain = image.domain();
+  
+
+  // Création d'une image pour générer les germes. 
+  Image imageSeeds ( domain);
+  for ( Image::Iterator it = imageSeeds.begin(), itend = imageSeeds.end();it != itend; ++it)
+    (*it)=1;
+
+  
+  Z3i::Point p0(50,50,50);
+  imageSeeds.setValue(p0, 0 );
+  /*  Z3i::Point p1(50,50,70);
+  imageSeeds.setValue(p1, 0 );
+  Z3i::Point p2(50,50,40);
+  imageSeeds.setValue(p2, 0 );
+
+  // Génération aléatoire des germes. 
+  //randomSeeds(imageSeeds, 70, 0);
+  */
+  
+  //Preparation du prédicat de la transformée. Un simple prédicat de seuil. 
+  typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
+  Predicate aPredicate(imageSeeds,0);
+
+  // Création de type et de l'objet pour appliquer la transformée. 
+  typedef  DistanceTransformation<Z3i::Space,Predicate, Z3i::L2Metric> DTL2;
+  DTL2 dtL2(&domain, &aPredicate, &Z3i::l2Metric);
+
+  // Detection des distances minimales et maximales. 
+  unsigned int min = 0;
+  unsigned int max = 0;
+  for(DTL2::ConstRange::ConstIterator it = dtL2.constRange().begin(),
+	itend=dtL2.constRange().end();
+      it!=itend;
+      ++it)
+  {
+    if(  (*it) < min )
+      min=(*it);
+    if( (*it) > max )
+      max=(*it);
+  }
+  
+  //Spécification des gradients de couleur pour la visualisation.
+  GradientColorMap<long> gradient( 0,30);
+  gradient.addColor(Color::Red);
+  gradient.addColor(Color::Yellow);
+  gradient.addColor(Color::Green);
+  gradient.addColor(Color::Cyan);
+  gradient.addColor(Color::Blue);
+  gradient.addColor(Color::Magenta);
+  gradient.addColor(Color::Red);
+
+  
+  std::cout << min << " " << max << std::endl;
+  // Affectation du mode de visualisation 3D. 
+  viewer << SetMode3D( (*(domain.begin())).className(), "Paving" );
+
+  // Parcours de tous les voxels de l'image avec un iterateur sur le domaine.  
+  for(Z3i::Domain::ConstIterator it = domain.begin(), itend=domain.end();
+      it!=itend;
+      ++it)
+  {
+
+    // Calcul de la transformée en distance pour le voxel courant. 
+    double valDist= dtL2( (*it) );
+
+    // Calcul du gradient de couleur pour cette distance.
+    Color c= gradient(valDist);
+
+    
+    if (true)//(valDist > 14 && valDist < 15) ||
+      //(valDist > 4 && valDist < 5))
+    {
+      // Affectation de la couleur pour le prochain voxel. 
+      if(dtL2(*it)<=max && image(*it)>0){
+	viewer << CustomColors3D(Color((float)(c.red()),
+				       (float)(c.green()),
+				       (float)(c.blue(),205)),
+				 Color((float)(c.red()),
+				       (float)(c.green()),
+				       (float)(c.blue()),205));
+	Z3i::Point currentPoint = *it;
+	if (currentPoint[1] > 50)
+	  // Le viewer reçoit le prochain voxel pour visualisation. 
+	  viewer << *it ;
+      }
+    }
+  }
+  
+  //viewer << ClippingPlane(0,1,0, -40) << Viewer3D<>::updateDisplay;
+  // Mise à jour du visualisateur après le parcours de tous le voxels. 
+  viewer<< Viewer3D<>::updateDisplay;
+}
+
+
+/**
+ * Cette fonction genère un ensemble de points afin de les placer 
+ * dans le volume comme les germes de la transformée en distance. 
+ * \param image.
+ * \param nombre de germes.
+ * \param value à affecter comme seuil. 
+ *
+ */ 
+template<typename Image>
+ void randomSeeds(Image &image, const unsigned int nb, const int value)
+ {
+   typename Image::Point p, low = image.domain().lowerBound();
+   typename Image::Vector ext;
+   srand ( time(NULL) );
+ 
+   ext = image.extent();
+ 
+   for (unsigned int k = 0 ; k < nb; k++)
+     {
+       for (unsigned int dim = 0; dim < Image::dimension; dim++)
+         p[dim] = rand() % (ext[dim]) +  low[dim];
+ 
+       image.setValue(p, value);
+     }
+ }
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////

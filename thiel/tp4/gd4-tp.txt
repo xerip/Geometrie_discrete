@@ -1,0 +1,146 @@
+Géométrie Discrète - TP séance 4                CC-BY Edouard.Thiel@univ-amu.fr
+================================                                     23/09/2018
+
+Ce document est téléchargeable à l'adresse :
+    http://pageperso.lif.univ-mrs.fr/~edouard.thiel/ens/geodis/gd4-tp.txt
+Ou encore
+    http://j.mp/gd-et  puis  gd4-tp.txt
+
+À la fin de la séance, envoyer-moi vos fichiers par mail à
+    Edouard.Thiel@univ-amu.fr
+    Sujet : [GIG3] TP4
+    corps : noms prénoms du binôme
+    en attaché : les fichiers .cpp avec vos noms dans l'entête et la date
+
+
+1. Remplissage de l'approximation polygonale
+   =========================================
+
+Reprenez votre programme du TP3.
+Pensez à le renommer (tp4-<vos-noms>.cpp) et à inscrire aussi vos noms et la
+date de la version à la fin de l'entête.
+
+ a) Modifiez le type ContourF8 et la fonction suivre_un_contour_c8 de manière à
+    ce qu'elle mémorise dans le résultat ContourF8, en plus des informations
+    actuelles, la direction initiale (vers le fond) reçue en paramètre.
+
+ b) Écrivez une fonction remplir_polyg qui prend en entrée le résultat
+    ContourPol de approximer_contour_c8, ainsi qu'une image de int, et une
+    couleur de remplissage coul. Elle colorie ensuite avec la couleur coul dans
+    l'image tous les pixels à l'intérieur du polygone en appelant la fonction
+    cv::fillPoly.
+    (pour un exemple d'appel, voir https://stackoverflow.com/a/8283145 ; le
+     paramètre pour mettre à la couleur coul est cv::Scalar(coul).)
+
+ c) Écrivez une fonction approximer_et_remplir_contours_c8 qui prend en entrée
+    la liste des ContoursF8 produite par effectuer_suivi_contours_c8, un seuil
+    réel, ainsi qu'une image de int ; elle vide l'image (avec la méthode setTo),
+    puis pour chaque ContourF8, elle approxime le contour avec
+    approximer_contour_c8, puis rempli chaque polygone dans l'image avec
+    remplir_polyg.
+
+    Pour "recréer" les trous dans l'image il devrait suffire de choisir comme
+    couleur de remplissage 255 si c'est un contour externe, sinon 0 (contour de
+    trou). Comme les contours de trous sont détectés après les contours
+    externes, l'ordre de remplissage des contours devrait permettre de récréer
+    formes et trous originaux (à l'approximation près).
+
+    On utilisera l'heuristique suivante : les contours       O -->x          
+    externes ont une direction initiale vers le haut (6)     |         5 6 7 
+    ou à gauche (4), tandis que les contours de trous        v         4 P 0 
+    l'ont en bas (2) ou à droite (0). Par bonheur on l'a     y         3 2 1 
+    stockée dans le ContourF8 :)
+
+ d) Associer la touche '6' au déclenchement de effectuer_suivi_contours_c8 suivi
+    de approximer_et_remplir_contours_c8, avec le seuil du slider "Polyg"
+    divise par 100.0. Observez l'évolution des formes et des trous lorsque le
+    seuil varie.
+
+
+2. Transformations de distances par pelage
+   =======================================
+
+Dans les questions suivantes, attention à ne pas sortir de l'image pour les
+tests de voisinage !
+
+ a) Écrivez une fonction
+        effectuer_pelage_DT (cv::Mat img_niv, int connexite)
+    qui initialise les points objet (> 0) à INT_MAX (défini dans <climits>),
+    puis effectue le pelage contour par contour de tous les objets présents dans
+    l'image, avec la connexité duale (puisqu'on teste des voisins du fond).
+
+ b) Associer la touche '7' au déclenchement successif de 
+        effectuer_suivi_contours_c8
+        approximer_et_remplir_contours_c8
+        effectuer_pelage_DT 
+
+    La connexité pourra être changée au clavier en tapant sur la touche 'c'.
+
+ c) Écrivez une fonction
+        detecter_maximums_locaux (cv::Mat img_niv, int connexite)
+    qui prend en entrée l'image résultat de effectuer_pelage_DT, puis la recopie
+    dans une image tmp avec la méthode clone. Elle met ensuite à 0 tous les
+    points de img_niv qui sont > 0 et non maximums locaux dans tmp pour la
+    connexité duale.
+
+ d) Associer la touche '8' au déclenchement successif de 
+        effectuer_suivi_contours_c8
+        approximer_et_remplir_contours_c8
+        effectuer_pelage_DT 
+        detecter_maximums_locaux
+
+    Observez l'évolution des maximums locaux lorsque vous modifiez le seuil
+    de polygonalisation ; comparez l'aspect en fonction de la connexité.
+
+ e) Écrivez une fonction
+        effectuer_pelage_RDT (cv::Mat img_niv, int connexite)
+    qui effectue la transformation de distance inverse par pelage, à partir
+    des maximums locaux contenus dans img_niv, pour la connexité duale.
+
+    Conseil : commencer par chercher la valeur maximale m dans img_niv, puis
+    procéder par niveau k depuis m jusqu'à 2 ; pour chaque niveau k, marquer
+    à k-1 les points inférieurs à k-1 qui ont au moins un voisin à k pour
+    la connexité duale.
+
+ f) Associer la touche '9' au déclenchement successif de 
+        effectuer_suivi_contours_c8
+        approximer_et_remplir_contours_c8
+        effectuer_pelage_DT 
+        detecter_maximums_locaux
+        effectuer_pelage_RDT
+
+    Vérifiez sur les images de joints que vous retrouvez bien les formes
+    approximées lorsque vous modifiez le seuil de polygonalisation.
+
+
+Finition :
+========
+
+    mettez à jour afficher_aide() par exemple ainsi :
+
+    void afficher_aide() {
+        // Indiquez les transformations ici
+        std::cout <<
+            "Touches du clavier:\n"
+            "   a    affiche cette aide\n"
+            " hHlL   change la taille de la loupe\n"
+            "   i    inverse les couleurs de src\n"
+            "   o    affiche l'image src originale\n"
+            "   s    affiche l'image src seuillée\n"
+            "   1    contours pour c8\n"
+            "   2    contours pour c4\n"
+            "   3    numérotation des contours pour c8\n"
+            "   4    suivi de contour pour c8\n"
+            "   5    approximation polygonale + coloriage\n"
+            "   6    approximation polygonale + remplissage\n"
+            "   c    change la connexité pour les traitements suivants :\n"
+            "   7    DT par pelage\n"
+            "   8    maximums locaux\n"
+            "   9    RDT par pelage\n"
+            "  esc   quitte\n"
+        << std::endl;
+    }
+
+    Modifiez également les messages de onKeyPressedEvent() en remplaçant chaque
+    fois "transformation x" par le nom de l'opération réalisée.
+

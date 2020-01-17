@@ -1,0 +1,252 @@
+/**
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ **/
+
+/**
+ * @file DicomReader.ih
+ * @author Adrien Krähenbühl (\c adrien.krahenbuhl@loria.fr )
+ * LORIA (CNRS, UMR 7503), Université de Lorraine, France
+ *
+ * @date 2013/10/10
+ *
+ * Implementation of inline methods defined in DicomReader.h
+ *
+ * This file is part of the DGtal library.
+ */
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include "DGtal/io/Color.h"
+#include "DGtal/images/ConstImageAdapter.h"
+
+// Required ITK files to read serie DICOM files
+// DGtal must be compiled with "-DWITH_ITK=true" option
+#if defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#if __GNUC__ >= 9
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
+#endif
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdocumentation"
+#endif
+#include <itkImage.h>
+#include <itkImageSeriesReader.h>
+#include <itkGDCMImageIO.h>
+#include <itkGDCMSeriesFileNames.h>
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+#if defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
+//////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+namespace DGtal {
+
+template <typename TImageContainer, typename TFunctor>
+template <typename Domain, typename PixelType>
+inline
+ImageContainerByITKImage<Domain, PixelType>
+DicomReader<TImageContainer, TFunctor>::
+importDicomFiles_( const std::vector<std::string> & filenames )
+{
+  // Definition of image type
+  const unsigned int dimension = Domain::dimension;
+  typedef itk::Image<PixelType, dimension> ItkImage;
+  typedef itk::ImageSeriesReader<ItkImage> ItkReader;
+  typename ItkReader::Pointer reader = ItkReader::New();
+
+  // Definition of ITK Dicom reader
+  //typedef itk::GDCMImageIO ItkImageIO;
+  //ItkImageIO::Pointer dicomIO = ItkImageIO::New();
+  //reader->SetImageIO( dicomIO );
+
+  // Series reader
+  reader->SetFileNames( filenames );
+
+  typedef ImageContainerByITKImage<Domain, PixelType> TypeDGtalImage;
+  typedef typename TypeDGtalImage::ITKImagePointer ITKImagePointer;
+  ITKImagePointer itkImage = nullptr;
+  
+  // Image reading
+  try
+  {
+    reader->Update();
+  }
+  catch( ... )
+  {
+    trace.error() << "DicomReader: can't read " << filenames.size()
+		  << " files"<<std::endl;
+    throw IOException();
+  }
+
+  itkImage = reader->GetOutput();
+  
+  const typename ItkImage::SizeType& inputSize =
+    itkImage->GetLargestPossibleRegion().GetSize();
+  const unsigned int width = inputSize[0];
+  const unsigned int height = inputSize[1];
+  const unsigned int depth = inputSize[2];
+  if ( !height || !width || !depth )
+  {
+    trace.error() << "DicomReader: one dimension is null (w=" << width
+		  << ", h=" << height << ", d=" << depth << ")"
+		  << std::endl;
+    throw IOException();
+  }
+  
+  const TypeDGtalImage dgtalItkImage( itkImage );
+
+  return dgtalItkImage;
+}
+
+template <typename TImageContainer, typename TFunctor>
+template <typename Image, typename Domain, typename OutPixelType,
+	  typename PixelType>
+Image
+DicomReader<TImageContainer, TFunctor>::Aux<Image, Domain, OutPixelType,
+					    PixelType>::
+importDicomFiles( const std::vector<std::string> & filenames,
+		  const TFunctor & aFunctor )
+{
+  typedef OutPixelType Value;
+  
+  typedef ImageContainerByITKImage<Domain, PixelType> TypeDGtalImage;
+  const TypeDGtalImage dgtalItkImage =
+    importDicomFiles_<Domain, PixelType>( filenames );
+  
+  const Domain& domain = dgtalItkImage.domain();
+  
+  typedef ConstImageAdapter<TypeDGtalImage, Domain, functors::Identity,
+			    Value, TFunctor> AdaptedImage;
+  const functors::Identity identityFunctor{};
+  const AdaptedImage adapted( dgtalItkImage, domain, identityFunctor,
+			      aFunctor );
+  
+  TImageContainer image( domain );
+  std::copy( adapted.constRange().begin(), adapted.constRange().end(),
+	     image.range().outputIterator() );
+  return image;
+}
+
+
+//specialization
+template <typename TImageContainer, typename TFunctor>
+template <typename Domain, typename OutPixelType, typename PixelType>
+ImageContainerByITKImage<Domain, OutPixelType>
+DicomReader<TImageContainer, TFunctor>::
+Aux<ImageContainerByITKImage<Domain, OutPixelType>, Domain, OutPixelType,
+    PixelType>::
+importDicomFiles( const std::vector<std::string> & filenames,
+		  const TFunctor & aFunctor )
+{
+  typedef OutPixelType Value;
+  
+  typedef ImageContainerByITKImage<Domain, PixelType> TypeDGtalImage;
+  const TypeDGtalImage dgtalItkImage =
+    importDicomFiles_<Domain, PixelType>( filenames );
+  
+  const Domain& domain = dgtalItkImage.domain();
+  
+  typedef ConstImageAdapter<TypeDGtalImage, Domain, functors::Identity, Value,
+			    TFunctor> AdaptedImage;
+  const functors::Identity identityFunctor{};
+  const AdaptedImage adapted( dgtalItkImage, domain, identityFunctor, aFunctor );
+  
+  TImageContainer image( domain );
+  std::copy( adapted.constRange().begin(), adapted.constRange().end(),
+	     image.range().outputIterator() );
+
+  //copy ITKImage parameters
+  image.getITKImagePointer()->SetOrigin(
+    dgtalItkImage.getITKImagePointer()->GetOrigin() );
+  image.getITKImagePointer()->SetSpacing(
+    dgtalItkImage.getITKImagePointer()->GetSpacing() );
+  image.getITKImagePointer()->SetDirection(
+    dgtalItkImage.getITKImagePointer()->GetDirection() );
+  
+  return image;
+}
+
+  
+template <typename TImageContainer, typename TFunctor>
+template <typename PixelType>
+inline TImageContainer
+DicomReader<TImageContainer, TFunctor>::
+importDicomFiles( const std::vector<std::string> & filenames,
+		  const TFunctor & aFunctor )
+{
+  typedef typename TImageContainer::Domain Domain;
+  return Aux<TImageContainer, Domain, Value, PixelType>::
+    importDicomFiles( filenames, aFunctor );
+}
+  
+
+template <typename TImageContainer, typename TFunctor>
+inline
+TImageContainer
+DicomReader<TImageContainer, TFunctor>::
+importDicom( const std::string & aFilename,
+	     const TFunctor & aFunctor )
+{
+  std::string directory = aFilename.substr( 0, aFilename.find_last_of("/") );
+
+  typedef itk::GDCMSeriesFileNames ItkNamesGenerator;
+  ItkNamesGenerator::Pointer nameGenerator = ItkNamesGenerator::New();
+  nameGenerator->SetDirectory( directory );
+  const std::vector<std::string> &filenames =
+    nameGenerator->GetInputFileNames();
+
+  return importDicomFiles<PixelType>( filenames, aFunctor );
+}
+
+template <typename TImageContainer, typename TFunctor>
+inline
+TImageContainer
+DicomReader<TImageContainer, TFunctor>::
+importDicomSeries( const std::vector<std::string> & filenames,
+		   const Functor & aFunctor )
+{
+  return importDicomFiles<PixelType>( filenames, aFunctor );
+}
+
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,36 @@
+PROJECT(startCode)
+
+### Required in DGtal
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+FIND_PACKAGE(DGtal REQUIRED)
+INCLUDE_DIRECTORIES(${DGTAL_INCLUDE_DIRS})
+LINK_DIRECTORIES(${DGTAL_LIBRARY_DIRS})
+
+# Make sure the compiler can find include files.
+include_directories (${PROJECT_SOURCE_DIR}/Volumes/)
+include_directories (${PROJECT_BINARY_DIR}/Volumes/)
+
+# ConfigExamples.h instanciation.
+configure_file(${PROJECT_SOURCE_DIR}/ConfigExamples.h.in 
+  ${PROJECT_SOURCE_DIR}/ConfigExamples.h)
+
+ADD_EXECUTABLE(digitalSetFromVol DigitalSetFromVol.cpp)
+TARGET_LINK_LIBRARIES(digitalSetFromVol ${DGTAL_LIBRARIES})
+
+ADD_EXECUTABLE(viewer3DImage viewer3DImage.cpp)
+TARGET_LINK_LIBRARIES(viewer3DImage ${DGTAL_LIBRARIES})
+
+ADD_EXECUTABLE(distanceTransform3D distanceTransform3D.cpp)
+TARGET_LINK_LIBRARIES(distanceTransform3D ${DGTAL_LIBRARIES})
+
+ADD_EXECUTABLE(image3D image3D.cpp)
+TARGET_LINK_LIBRARIES(image3D ${DGTAL_LIBRARIES})
+
+ADD_EXECUTABLE(connectedComponents connectedComponents.cpp)
+TARGET_LINK_LIBRARIES(connectedComponents ${DGTAL_LIBRARIES})
+
+ADD_EXECUTABLE(startCode startCode.cpp)
+TARGET_LINK_LIBRARIES(startCode ${DGTAL_LIBRARIES})
+
+#ADD_EXECUTABLE(startCode main.cpp)
+#TARGET_LINK_LIBRARIES(startCode ${DGTAL_LIBRARIES})

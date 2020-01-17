@@ -1,0 +1,58 @@
+Géométrie Discrète - TP séance 3                CC-BY Edouard.Thiel@univ-amu.fr
+================================                                     05/10/2019
+
+Ce document est téléchargeable à l'adresse :
+    http://pageperso.lif.univ-mrs.fr/~edouard.thiel/ens/geodis/gd3-tp.txt
+Ou encore
+    http://j.mp/gd-et  puis  gd3-tp.txt
+
+À la fin de la séance, envoyer-moi vos fichiers par mail à
+    Edouard.Thiel@univ-amu.fr
+    Sujet : [GIG3] TP3
+    corps : noms prénoms du binôme
+    en attaché : les fichiers .cpp avec vos noms dans l'entête et la date
+
+
+1. Approximation polygonale d'un contour
+   =====================================
+
+Reprenez votre programme du TP2.
+Pensez à le renommer (tp3-<vos-noms>.cpp) et à inscrire aussi vos noms et la
+date de la version à la fin de l'entête.
+
+
+ a) Déclarez un type ContourF8 mémorisant les coordonnées d'un point de
+    départ ainsi que la chaîne de Freeman d'un contour 8-connexe et sa taille.
+
+    Modifiez la fonction effectuer_suivi_contours_c8 de manière à ce qu'elle
+    mémorise chaque contour détecté dans un ContourF8 puis en fournit la liste.
+
+ b) Déclarez un type ContourPol mémorisant les coordonnées des points d'un
+    contour avec pour chaque point un flag "sommet" indiquant si le point est un
+    sommet de l'approximation polygonale, ainsi que la taille des listes
+    (incluant le point final qui est égal au point initial).
+
+    Écrivez une fonction approximer_contour_c8 qui prend en entrée un ContourF8
+    et un seuil réel, puis effectue l'algorithme d'approximation polygonale
+    récursive vue en cours, et fournit le résultat dans un ContourPol.
+
+ c) Écrivez une fonction colorier_morceaux qui prend en entrée le résultat
+    ContourPol de la fonction précédente, ainsi qu'une image de int, puis
+    colorie dans l'image les pixels du contour avec des 1 jusqu'au 1er sommet
+    inclus, puis avec des 2 jusqu'au deuxième sommet inclus, etc (en sautant la
+    valeur 255).
+
+ d) Écrivez une fonction approximer_et_colorier_contours_c8 qui prend en entrée
+    la liste des ContoursF8 produite par effectuer_suivi_contours_c8, un seuil
+    réel, ainsi qu'une image de int, puis pour chaque ContourF8, approxime le
+    contour avec approximer_contour_c8 puis colorie les morceaux de contour dans
+    l'image avec colorier_morceau.
+
+ e) Associer la touche '5' au déclenchement de effectuer_suivi_contours_c8 suivi
+    de approximer_et_colorier_contours_c8, par exemple avec un seuil de 2.0.
+
+    Rajouter un troisième slider "Polyg" pour le seuil d'approximation,
+    avec une valeur maximale de 1000 et en divisant la valeur courante par
+    100.0.
+
+

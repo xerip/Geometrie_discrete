@@ -1,0 +1,143 @@
+Géométrie Discrète - TP séance 5                CC-BY Edouard.Thiel@univ-amu.fr
+================================                                     17/10/2019
+
+Ce document est téléchargeable à l'adresse :
+    http://pageperso.lif.univ-mrs.fr/~edouard.thiel/ens/geodis/gd5-tp.txt
+Ou encore
+    http://j.mp/gd-et  puis  gd5-tp.txt
+
+À la fin de la séance, envoyer-moi vos fichiers par mail à
+    Edouard.Thiel@univ-amu.fr
+    Sujet : [GIG3] TP5
+    corps : noms prénoms du binôme
+    en attaché : les fichiers .cpp avec vos noms dans l'entête et la date
+
+
+1. Transformations de distances pondérées
+   ======================================
+
+La série des TP 1 à 4 étant achevée, nous allons débuter un nouveau programme
+pour les TP 5 et 6. Téléchargez le fichier d'exemple ex01-transfos.cpp et
+renommez-le tp5-<vos-noms>.cpp ; pensez à inscrire aussi vos noms et la date de
+la version à la fin de l'entête.
+
+
+1.1 Types de base
+    -------------
+
+Déclarer un type enum NumeroMasque avec les constantes nommées M_D4, M_D8,
+M_2_3, M_3_4, M_5_7_11, M_LAST.
+
+Déclarez un type Ponderation mémorisant les coordonnées x,y et le poids w
+(tous entiers) d'une pondération.
+
+Déclarez un type DemiMasque mémorisant une liste de pondérations et sa taille,
+un NumeroMasque, et le nom du masque ou de la distance (pour affichage).
+
+Le constructeur de DemiMasque prendra en paramètre un NumeroMasque, puis selon
+sa valeur, initialisera le membre nom à un nom explicite, et peuplera la liste
+de pondérations avec les pondérations pour le balayage arrière, c'est-à-dire
+telles que (y > 0) ou (y == 0 et x > 0).
+
+Dans la classe My, mémoriser un numero_masque et un demi_masque courants.
+
+Rajouter une bascule 'd' dans onKeyPressEvent permettant de passer de masque
+en masque, en affichant chaque fois le nom du masque sélectionné.
+
+
+1.2 DT Rosenfeld
+    ------------
+
+Écrivez la fonction
+
+    calculer_Rosenfeld_DT (cv::Mat img_niv, demi_masque)
+
+qui effectue la transformation de distance séquentielle de Rosenfeld, avec le
+demi-masque en paramètre.
+
+Pour le passage avant, utiliser le symétrique du demi-masque (en inversant le
+signe des coordonnées des pondérations) ; et pour le passage arrière, utiliser
+le demi-masque tel quel. Attention à ne pas sortir de l'image !
+
+Appelez cette fonction dans effectuer_transformations pour le cas A_TRANS1 lié 
+à la touche '1'.
+
+Vérifiez sur les images de joints que vous obtenez la même chose qu'avec
+l'algorithme par pelage du TP4.
+
+
+1.3 Maximas locaux
+    --------------
+
+Écrivez la fonction
+
+    detecter_maximums_locaux (cv::Mat img_niv, demi_masque)
+
+qui reçoit dans img_niv une transformée de distances.
+
+La fonction commence par construire un masque complet formé du demi-masque et du
+symétrique du demi-masque (en inversant le signe des coordonnées).
+
+Elle réalise ensuite une copie img_dt de img_niv, puis détecte sur img_dt les
+maximums locaux, de manière à mettre à 0 dans img_niv tous les autres points.
+Attention à ne pas sortir de l'image !
+
+La fonction utilise le critère de maximum local suivant :
+  un point (x,y) est maximum local si pour toute pondération (px,py,w) on a :
+        DT[x,y] > DT[x+px,y+py] - w
+
+Dans effectuer_transformations, pour le cas A_TRANS2 lié à la touche '2',
+appelez successivement la fonction calculer_Rosenfeld_DT puis
+detecter_maximums_locaux.
+
+Vérifiez sur les images de joints que vous obtenez la même chose qu'au TP4 pour 
+d4 et d8.
+
+
+1.4. RDT Rosenfeld
+     -------------
+
+Écrivez la fonction
+
+    calculer_Rosenfeld_RDT (cv::Mat img_niv, int connexite)
+
+qui reçoit dans img_niv une image de maximums locaux.
+
+La fonction effectue la transformation de distance inverse séquentielle de
+Rosenfeld, avec le demi-masque en paramètre.
+
+Dans effectuer_transformations, pour le cas A_TRANS3 lié à la touche '3',
+appelez successivement la fonction calculer_Rosenfeld_DT puis
+detecter_maximums_locaux puis calculer_Rosenfeld_RDT.
+
+Vérifiez sur les images de joints que vous retrouvez bien la forme originale ,
+et que vous obtenez la même chose qu'au TP4 pour d4 et d8.
+
+
+1.5 Filtrage des maximum locaux
+    ---------------------------
+
+Rajoutez un slider "Filtre" avec une valeur max de 500, lié à un paramètre 
+filtre stocké dans my et initialisé à 0.
+
+Dans effectuer_transformations, créez un cas A_TRANS4 lié à la touche '4',
+et qui appelle la fonction 
+
+    filtrer_formes_avec_maximums_locaux (img_niv, demi_maque, filtre)
+
+Cette fonction fera les opérations suivantes :
+
+    - calculer_Rosenfeld_DT
+    - detecter_maximums_locaux
+    - mettre à 0 tous les maximums locaux <= filtre
+    - calculer_Rosenfeld_RDT sur les maximums locaux filtrés
+    - enfin, dans le résultat img_niv, les valeurs des pixels seront mis à
+         0 (noir)  : points du fond de l'image originale
+        11 (cyan)  : points maximums locaux > filtre
+         8 (gris)  : points de la forme obtenue par RDT
+        12 (rouge) : points de la forme originale, non retrouvés par RDT
+
+Remarque : le filtre étant très sensible, vous pouvez manipuler le slider avec
+les flèches gauche et droite pour le déplacer par pas de 1.
+
+
